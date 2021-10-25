@@ -45,11 +45,17 @@ class Corpus(object):
         
         Update self.number_of_documents
         """
-        # #############################
-        # your code here
-        # #############################
+        file = open(self.documents_path, 'r')
+
+        lines = file.readlines()
+        for line in lines:
+            if line[0] in ["0","1"]: # document is labeled 0 (seattle) or 1 (chicago) for its topic
+                line = line[2:]
+            words = line.strip().split(" ")
+            self.documents.append(words)
         
-        pass    # REMOVE THIS
+        self.number_of_documents = len(self.documents)
+        file.close()
 
     def build_vocabulary(self):
         """
@@ -58,11 +64,13 @@ class Corpus(object):
 
         Update self.vocabulary_size
         """
-        # #############################
-        # your code here
-        # #############################
-        
-        pass    # REMOVE THIS
+        for doc in self.documents:
+            for word in doc:
+                if word not in self.vocabulary:
+                    self.vocabulary.append(word)
+                    self.vocabulary_size += 1
+
+        self.vocabulary_size = len(self.vocabulary)
 
     def build_term_doc_matrix(self):
         """
