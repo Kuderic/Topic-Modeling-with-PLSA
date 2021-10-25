@@ -164,7 +164,7 @@ class Corpus(object):
         """
         print("M step:")
 
-        # The M-step would also be simpler as p(Z=B|w) is also zero for all words (due to the fact that λB=0).
+        # The M-step would also be simpler as p(Z=B|w) is also zero for all words (due to the fact that B=0).
         
         # update P(w | z). T, self.topicwordprob
 
