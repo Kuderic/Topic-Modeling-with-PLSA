@@ -1,18 +1,20 @@
 import numpy as np
 import math
+from collections import Counter
 
 
 def normalize(input_matrix):
     """
     Normalizes the rows of a 2d input_matrix so they sum to 1
     """
-
     row_sums = input_matrix.sum(axis=1)
     try:
         assert (np.count_nonzero(row_sums)==np.shape(row_sums)[0]) # no row should sum to zero
     except Exception:
         raise Exception("Error while normalizing. Row(s) sum to zero")
+    # print("rowsums",row_sums)
     new_matrix = input_matrix / row_sums[:, np.newaxis]
+
     return new_matrix
 
        
@@ -82,9 +84,17 @@ class Corpus(object):
         # ############################
         # your code here
         # ############################
+        rows = []
+        for doc in self.documents:
+            word_count = Counter(doc)
+            row = []
+            for word in self.vocabulary:
+                row.append(word_count[word])
+            rows.append(row)
         
-        pass    # REMOVE THIS
-
+        self.term_doc_matrix = np.array(rows)
+        print("Term doc matrix:", self.term_doc_matrix)
+        print("Term doc matrix shape:", self.term_doc_matrix.shape)
 
     def initialize_randomly(self, number_of_topics):
         """
@@ -94,12 +104,22 @@ class Corpus(object):
         Don't forget to normalize! 
         HINT: you will find numpy's random matrix useful [https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.random.random.html]
         """
-        # ############################
-        # your code here
-        # ############################
+        # T : topic_word_prob (topics by words). θ_i's. Each element is the probability of a particular word in a particular topic.
+        # D : document_topic_prob (documents by topics). p_ij's. Each element is the probability that a particular topic is covered in a particular document.
 
-        pass    # REMOVE THIS
+        # self.document_topic_prob = None  # P(z | d)
+        # self.topic_word_prob = None  # P(w | z)
+        # self.topic_prob = None  # P(z | d, w)
+
+        self.topic_word_prob = np.random.rand(number_of_topics, self.vocabulary_size)
+        self.topic_word_prob = normalize(self.topic_word_prob)
+        print("self.topic_word_prob:", self.topic_word_prob)
+        print("shape:", self.topic_word_prob.shape)
         
+        self.document_topic_prob = np.random.rand(self.number_of_documents, number_of_topics)
+        self.document_topic_prob = normalize(self.document_topic_prob)
+        print("self.document_topic_pro:", self.document_topic_prob)
+        print("shape:", self.document_topic_prob.shape)
 
     def initialize_uniformly(self, number_of_topics):
         """
@@ -125,50 +145,73 @@ class Corpus(object):
             self.initialize_uniformly(number_of_topics)
 
     def expectation_step(self):
-        """ The E-step updates P(z | w, d)
+        """ The E-step updates P(z | w, d) self.topic_prob
         """
         print("E step:")
-        
-        # ############################
-        # your code here
-        # ############################
 
-        pass    # REMOVE THIS
-            
+        #############################
+        # your code here            #
+        #############################
+
+        for word_idx in range(self.vocabulary_size):
+            for document_idx in range(self.number_of_documents):
+                prob = self.document_topic_prob[document_idx, :] * self.topic_word_prob[:, word_idx]
+                prob = prob / prob.sum()
+                self.topic_prob[document_idx, :, word_idx] = prob
 
     def maximization_step(self, number_of_topics):
         """ The M-step updates P(w | z)
         """
         print("M step:")
-        
-        # update P(w | z)
-        
-        # ############################
-        # your code here
-        # ############################
 
+        # The M-step would also be simpler as p(Z=B|w) is also zero for all words (due to the fact that λB=0).
         
-        # update P(z | d)
+        # update P(w | z). T, self.topicwordprob
 
-        # ############################
-        # your code here
-        # ############################
-        
-        pass    # REMOVE THIS
+        # multiply term doc matrix  * topic prob (topic prob is what you calculated in E step). then you normalize over topics and words respectively.
+        # when you use einsum, remember you are just updating the topic word prob and document topic prob. they should have the same dimensions as before
 
 
-    def calculate_likelihood(self, number_of_topics):
+        # update P(z | d). D, self.document_topic_prob
+
+        # number of times we expect to see a word in document d assigned to topic_idx j
+        # n_dj = 1
+        
+        for document_idx in range(self.number_of_documents):
+            for topic_idx in range(number_of_topics):
+                dot_product = self.term_doc_matrix[document_idx, :].dot(self.topic_prob[document_idx, topic_idx, :])
+                self.document_topic_prob[document_idx, topic_idx] = dot_product
+            sum = self.document_topic_prob[document_idx, :].sum()
+            self.document_topic_prob[document_idx, :] /= sum
+
+
+        # self.term_doc_matrix * self.topic_prob
+        
+        dot_product = 0
+        sum = 0
+        for topic_idx in range(number_of_topics):
+            for word_idx in range(self.vocabulary_size):
+                dot_product = self.term_doc_matrix[:, word_idx].dot(self.topic_prob[:, topic_idx, word_idx])
+                self.topic_word_prob[topic_idx, word_idx] = dot_product
+
+            sum = self.topic_word_prob[topic_idx, :].sum()
+            self.topic_word_prob[topic_idx, :] /= sum
+
+
+
+    def calculate_likelihood(self):
         """ Calculate the current log-likelihood of the model using
         the model's updated probability matrices
         
         Append the calculated log-likelihood to self.likelihoods
 
         """
-        # ############################
-        # your code here
-        # ############################
-        
-        return
+        log_prob = np.log(self.document_topic_prob @ self.topic_word_prob)
+        temp = log_prob * self.term_doc_matrix
+        sum = np.sum(temp)
+        print("newly calculated likelihood:", sum)
+        self.likelihoods.append(sum)
+        return sum
 
     def plsa(self, number_of_topics, max_iter, epsilon):
 
@@ -190,15 +233,22 @@ class Corpus(object):
 
         # Run the EM algorithm
         current_likelihood = 0.0
-
+        
         for iteration in range(max_iter):
             print("Iteration #" + str(iteration + 1) + "...")
+            self.expectation_step()
+            self.maximization_step(number_of_topics)
 
-            # ############################
-            # your code here
-            # ############################
+            previous_likelihood = current_likelihood
+            current_likelihood = self.calculate_likelihood()
+            current_likelihood = self.likelihoods[-1]
 
-            pass    # REMOVE THIS
+            if abs(previous_likelihood - current_likelihood) < epsilon:
+                print("yeah this is pretty good.")
+                print(current_likelihood)
+                return current_likelihood
+            else:
+                print("Current likelihood is ", current_likelihood)
 
 
 
@@ -211,7 +261,7 @@ def main():
     print("Vocabulary size:" + str(len(corpus.vocabulary)))
     print("Number of documents:" + str(len(corpus.documents)))
     number_of_topics = 2
-    max_iterations = 50
+    max_iterations = 300
     epsilon = 0.001
     corpus.plsa(number_of_topics, max_iterations, epsilon)
 
