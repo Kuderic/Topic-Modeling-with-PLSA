@@ -206,7 +206,7 @@ class Corpus(object):
         Append the calculated log-likelihood to self.likelihoods
 
         """
-        log_prob = np.log(self.document_topic_prob @ self.topic_word_prob)
+        log_prob = np.log(np..matmul(self.document_topic_prob, self.topic_word_prob))
         temp = log_prob * self.term_doc_matrix
         sum = np.sum(temp)
         print("newly calculated likelihood:", sum)
