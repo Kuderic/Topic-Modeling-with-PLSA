@@ -104,7 +104,7 @@ class Corpus(object):
         Don't forget to normalize! 
         HINT: you will find numpy's random matrix useful [https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.random.random.html]
         """
-        # T : topic_word_prob (topics by words). θ_i's. Each element is the probability of a particular word in a particular topic.
+        # T : topic_word_prob (topics by words). theta_i's. Each element is the probability of a particular word in a particular topic.
         # D : document_topic_prob (documents by topics). p_ij's. Each element is the probability that a particular topic is covered in a particular document.
 
         # self.document_topic_prob = None  # P(z | d)
